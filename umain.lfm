@@ -1,0 +1,245 @@
+object Form1: TForm1
+  Left = 327
+  Height = 520
+  Top = 309
+  Width = 935
+  Caption = 'Расчет фоновых уровней показателей здоровья'
+  ClientHeight = 520
+  ClientWidth = 935
+  OnCreate = FormCreate
+  LCLVersion = '1.6.0.4'
+  object pData: TPanel
+    AnchorSideRight.Control = pControl
+    Left = 0
+    Height = 520
+    Top = 0
+    Width = 680
+    Align = alLeft
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    ClientHeight = 520
+    ClientWidth = 680
+    Color = clWhite
+    ParentColor = False
+    TabOrder = 0
+    object gbStatValues: TGroupBox
+      AnchorSideLeft.Control = sgVariationSeries
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = gbInput
+      AnchorSideTop.Side = asrBottom
+      AnchorSideRight.Control = pData
+      AnchorSideRight.Side = asrBottom
+      AnchorSideBottom.Control = pData
+      AnchorSideBottom.Side = asrBottom
+      Left = 448
+      Height = 263
+      Top = 256
+      Width = 231
+      Anchors = [akTop, akRight, akBottom]
+      Caption = 'Характеристики'
+      ClientHeight = 243
+      ClientWidth = 227
+      Color = clForm
+      ParentColor = False
+      TabOrder = 0
+      object lMeanValue: TLabel
+        Left = 8
+        Height = 15
+        Top = 8
+        Width = 46
+        Caption = 'Среднее'
+        ParentColor = False
+      end
+      object eMeanValue: TEdit
+        Left = 16
+        Height = 23
+        Top = 32
+        Width = 80
+        NumbersOnly = True
+        ReadOnly = True
+        TabOrder = 0
+      end
+      object lMSD: TLabel
+        Left = 8
+        Height = 15
+        Top = 72
+        Width = 106
+        Caption = 'Ср.-кв. отклонение'
+        ParentColor = False
+      end
+      object eMSD: TEdit
+        Left = 16
+        Height = 23
+        Top = 96
+        Width = 80
+        ReadOnly = True
+        TabOrder = 1
+      end
+      object Label3: TLabel
+        Left = 8
+        Height = 15
+        Top = 136
+        Width = 34
+        Caption = 'Label3'
+        ParentColor = False
+        Visible = False
+      end
+      object Edit3: TEdit
+        Left = 16
+        Height = 23
+        Top = 160
+        Width = 80
+        TabOrder = 2
+        Text = 'Edit3'
+        Visible = False
+      end
+    end
+    object gbInput: TGroupBox
+      AnchorSideLeft.Control = pData
+      AnchorSideTop.Control = pData
+      AnchorSideRight.Control = pData
+      AnchorSideRight.Side = asrBottom
+      Left = 1
+      Height = 255
+      Top = 1
+      Width = 678
+      Anchors = [akTop, akLeft, akRight, akBottom]
+      Caption = 'Входные данные'
+      ClientHeight = 235
+      ClientWidth = 674
+      TabOrder = 1
+      object pcInput: TPageControl
+        Left = 0
+        Height = 235
+        Top = 0
+        Width = 674
+        ActivePage = tsMorbidity
+        Align = alClient
+        Anchors = [akTop, akLeft, akRight]
+        TabIndex = 0
+        TabOrder = 0
+        object tsMorbidity: TTabSheet
+          Hint = 'Стандартизованные показатели заболеваемости'
+          Caption = 'Показатели заболеваемости'
+          ClientHeight = 207
+          ClientWidth = 666
+          object sgMorbidity: TStringGrid
+            Left = 0
+            Height = 207
+            Top = 0
+            Width = 666
+            Align = alClient
+            TabOrder = 0
+            Visible = False
+          end
+        end
+        object tsPopulation: TTabSheet
+          Hint = 'Среднегодовая численность населения территорий'
+          Caption = 'Численность населения'
+          ClientHeight = 207
+          ClientWidth = 666
+          object sgPopulation: TStringGrid
+            Left = 0
+            Height = 207
+            Top = 0
+            Width = 666
+            Align = alClient
+            TabOrder = 0
+            Visible = False
+          end
+        end
+      end
+    end
+    object gbVariationSeries: TGroupBox
+      AnchorSideLeft.Control = pData
+      AnchorSideTop.Control = gbInput
+      AnchorSideTop.Side = asrBottom
+      AnchorSideRight.Control = gbStatValues
+      AnchorSideBottom.Control = pData
+      AnchorSideBottom.Side = asrBottom
+      Left = 1
+      Height = 263
+      Top = 256
+      Width = 447
+      Anchors = [akTop, akLeft, akRight, akBottom]
+      Caption = 'Проверка нормальности распределения вариационного ряда'
+      ClientHeight = 243
+      ClientWidth = 443
+      TabOrder = 2
+      object sgVariationSeries: TStringGrid
+        Left = 0
+        Height = 243
+        Top = 0
+        Width = 443
+        Align = alClient
+        TabOrder = 0
+        Visible = False
+      end
+    end
+  end
+  object pControl: TPanel
+    AnchorSideTop.Control = Owner
+    AnchorSideRight.Control = Owner
+    AnchorSideBottom.Control = Owner
+    AnchorSideBottom.Side = asrBottom
+    Left = 680
+    Height = 520
+    Top = 0
+    Width = 255
+    Align = alRight
+    ClientHeight = 520
+    ClientWidth = 255
+    TabOrder = 1
+    object btnRun: TButton
+      Left = 88
+      Height = 25
+      Top = 120
+      Width = 75
+      Caption = 'Рассчитать'
+      Enabled = False
+      OnClick = btnRunClick
+      TabOrder = 0
+    end
+    object mLog: TMemo
+      Left = 1
+      Height = 164
+      Top = 355
+      Width = 253
+      Align = alBottom
+      Lines.Strings = (
+        'mLog'
+      )
+      ReadOnly = True
+      ScrollBars = ssAutoBoth
+      TabOrder = 1
+    end
+    object btnLoadMorbidity: TButton
+      AnchorSideTop.Control = gbInput
+      AnchorSideRight.Control = gbInput
+      AnchorSideRight.Side = asrBottom
+      AnchorSideBottom.Control = sgMorbidity
+      Left = 8
+      Height = 25
+      Top = 8
+      Width = 238
+      Anchors = [akTop, akRight]
+      Caption = 'Загрузить показатели заболеваемости'
+      OnClick = btnLoadMorbidityClick
+      TabOrder = 2
+    end
+    object btnLoadPopulation: TButton
+      Left = 24
+      Height = 25
+      Top = 40
+      Width = 208
+      Caption = 'Загрузить численность населения'
+      OnClick = btnLoadPopulationClick
+      TabOrder = 3
+    end
+  end
+  object OpenDialog1: TOpenDialog
+    Width = 28
+    Height = 28
+    left = 712
+    top = 232
+  end
+end
