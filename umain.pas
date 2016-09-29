@@ -10,12 +10,15 @@ uses
   ExtCtrls, StdCtrls, ActnList, ComCtrls, LazUTF8;
 
 const
-  TChauvenetCriterion: array [5..50] of Double  = (1.680, 1.730, 1.790, 1.860, 1.920,
-         1.960, 1.995, 2.030, 2.065, 2.100, 2.130, 2.160, 2.180, 2.200, 2.220,
-         2.240, 2.260, 2.280, 2.295, 2.310, 2.335, 2.360, 2.368, 2.375, 2.383,
-         2.390, 2.401, 2.412, 2.423, 2.434, 2.445, 2.456, 2.467, 2.478, 2.489,
-         2.500, 2.508, 2.516, 2.524, 2.532, 2.540, 2.548, 2.556, 2.564, 2.572,
-         2.580);
+  CHAUVENET_CRITERION: array [5..50] of Double  = (1.680, 1.730, 1.790, 1.860,
+         1.920, 1.960, 1.995, 2.030, 2.065, 2.100, 2.130, 2.160, 2.180, 2.200,
+         2.220, 2.240, 2.260, 2.280, 2.295, 2.310, 2.335, 2.360, 2.368, 2.375,
+         2.383, 2.390, 2.401, 2.412, 2.423, 2.434, 2.445, 2.456, 2.467, 2.478,
+         2.489, 2.500, 2.508, 2.516, 2.524, 2.532, 2.540, 2.548, 2.556, 2.564,
+         2.572, 2.580);
+
+  CHAUVENET_HEADER: array [0..7] of String = ('Ранг', 'Субъект', 'Год', 'Pi_min',
+         'Pi_min-X_min', '(Pi_min-X_min)^2', 'Население Np', 'Pi_max*Np');
 
 type
 
@@ -27,6 +30,7 @@ type
     Deviation: Double;
     Deviation_sq: Double;
     Population: Double;
+    Pi_p: Double;
   end;
 
   { TForm1 }
@@ -55,25 +59,21 @@ type
     tsMorbidity: TTabSheet;
     tsPopulation: TTabSheet;
     procedure btnLoadMorbidityClick(Sender: TObject);
-    procedure btnRunClick(Sender: TObject);
     procedure btnLoadPopulationClick(Sender: TObject);
-    procedure Button3Click(Sender: TObject);
+    procedure btnRunClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private
     isPopulationDataLoad: Boolean;
-    ObjectName: String;
-    Morbidity: array of array of Double;
-    tdMorbidity: TTableData;
-    Population: array of array of Double;
+    Morbidity: TTableData;
+    Population: TTableData;
     Chauvenet: array of TChauvenet;
-    procedure SetMorbidityData;
-    procedure SetPopulationData;
+    procedure ReadTableData(var table: TTableData);
+    procedure SetStringGridByData(var sg: TStringGrid; const table: TTableData);
     procedure CalcChauvenet;
     procedure CalcLongTimeAverageAnnualMinimum;
     procedure AddToLog(str: String);
     procedure ClearCalculatedData;
-    function getPopulationData(oName: String; Year: Integer) : Integer;
-    { private declarations }
+    procedure CalcPopulationData;
   public
     { public declarations }
   end;
@@ -87,32 +87,40 @@ implementation
 
 { TForm1 }
 
-procedure TForm1.SetMorbidityData;
+procedure TForm1.ReadTableData(var table: TTableData);
 var
-  i, j: Integer;
+  fin: TextFile;
+  FileName, s: String;
+  Row: Integer;
 begin
-  //ShowMessage('ACol = ' + IntToStr(sgMorbidity.ColCount) + 'ARow = ' +
-  //                  IntToStr(sgMorbidity.RowCount));
-  SetLength(Morbidity, sgMorbidity.RowCount - 1, sgMorbidity.ColCount - 1);
-  for i := 1 to sgMorbidity.RowCount - 1 do
-    for j := 1 to sgMorbidity.ColCount - 1 do
-      if sgMorbidity.Cells[j, i] = '' then
-        Morbidity[i - 1, j - 1] := 0.0
-      else
-        Morbidity[i - 1, j - 1] := StrToFloat(sgMorbidity.Cells[j, i]);
+  table := TTableData.Create;
+  If openDialog1.Execute Then FileName:=openDialog1.FileName;
+  AssignFile(fin, FileName);
+  Reset (fin);
+  Row := 0;
+  while not EOF(fin) do begin
+    Readln(fin, s);
+    if Row = 0 then table.setHeader(s)
+    else table.addRecord(s);
+    Inc(Row);
+  end;
 end;
 
-procedure TForm1.SetPopulationData;
+procedure TForm1.SetStringGridByData(var sg: TStringGrid; const table: TTableData);
 var
   i, j: Integer;
 begin
-  SetLength(Population, sgPopulation.RowCount - 1, sgPopulation.ColCount - 1);
-  for i := 1 to sgPopulation.RowCount - 1 do
-    for j := 1 to sgPopulation.ColCount - 1 do
-      if sgPopulation.Cells[j, i] = '' then
-        Population[i - 1, j - 1] := 0.0
-      else
-        Population[i - 1, j - 1] := StrToFloat(sgPopulation.Cells[j, i]);
+  sg.RowCount := table.RowCount + 1;
+  sg.ColCount := table.ColCount + 1;
+  sg.Cells[0, 0] := table.SubjectType;
+  For j := 0 to table.ColCount - 1 do
+    sg.Cells[j + 1, 0] := IntToStr(table.Year[j]);
+  For i := 0 to table.RowCount - 1 do
+    sg.Cells[0, i + 1] := table.Subject[i];
+  For i := 0 to table.RowCount - 1 do
+    For j := 0 to table.ColCount - 1 do
+      sg.Cells[j + 1, i + 1] := FloatToStr(table[i, j]);
+  sg.Visible := True;
 end;
 
 procedure TForm1.CalcChauvenet;
@@ -126,13 +134,13 @@ begin
   For i := 0 to Length(Chauvenet) - 1 do begin
     Chauvenet[i].Subject := sgMorbidity.Cells[1, i + 1];
     k := 0;
-    while (k < Length(Morbidity[i]) - 1) and (Morbidity[i, k] = 0) do
+    while (k < Morbidity.ColCount - 1) and (Morbidity[i, k] = 0) do
       Inc(k);
-    min := Morbidity[i][k];
+    min := Morbidity[i, k];
     j_min := k;
-    For j := k + 1 to Length(Morbidity[i]) - 1 do
-      If (Morbidity[i][j] > 0.0) and (Morbidity[i][j] < min) Then begin
-        min := Morbidity[i][j];
+    For j := k + 1 to Morbidity.ColCount - 1 do
+      If (Morbidity[i, j] > 0.0) and (Morbidity[i, j] < min) Then begin
+        min := Morbidity[i, j];
         j_min := j;
       end;
     Chauvenet[i].Subject := sgMorbidity.Cells[0, i + 1];
@@ -151,12 +159,11 @@ begin
 
   sgVariationSeries.RowCount := 1;
   sgVariationSeries.ColCount := 6;
-  sgVariationSeries.Cells[0, 0] := 'Ранг';
-  sgVariationSeries.Cells[1, 0] := ObjectName;
-  sgVariationSeries.Cells[2, 0] := 'Год';
-  sgVariationSeries.Cells[3, 0] := 'Pi_min';
-  sgVariationSeries.Cells[4, 0] := 'Pi_min-X_min';
-  sgVariationSeries.Cells[5, 0] := '(Pi_min-X_min)^2';
+
+  For i := 0 to 5 do
+    sgVariationSeries.Cells[i, 0] := CHAUVENET_HEADER[i];
+  if Morbidity.SubjectType <> '' then
+    sgVariationSeries.Cells[1, 0] := Morbidity.SubjectType;
 
   sgVariationSeries.Visible := True;
 
@@ -171,7 +178,6 @@ begin
     X_min := sum / Length(Chauvenet);
     AddToLog('Среднее равно ' + FloatToStr(X_min));
     eMeanValue.Text := FloatToStr(X_min);
-    //ShowMessage('X_min = ' + FloatToStr(X_min));
 
     sum := 0.0;
     For i := 0 to Length(Chauvenet) - 1 do
@@ -199,18 +205,14 @@ begin
 
     U1 := (X_min - Chauvenet[0].Pi_min) / msd;
     AddToLog('U1 = ' + FloatToStr(U1));
-    //ShowMessage('U1 = ' + FloatToStr(U1));
     Un := (Chauvenet[Length(Chauvenet) - 1].Pi_min - X_min) / msd;
     AddToLog('U16 = ' + FloatToStr(Un));
-    //ShowMessage('U16 = ' + FloatToStr(Un));
 
-    Ut := TChauvenetCriterion[Length(Chauvenet)];
+    Ut := CHAUVENET_CRITERION[Length(Chauvenet)];
     AddToLog('Ut = ' + FloatToStr(Ut));
-    //ShowMessage('Ut = ' + FloatToStr(Ut));
     if (Un >= Ut) then begin
       SetLength(Chauvenet, Length(Chauvenet) - 1);
       AddToLog('Un - аномальная величина');
-      //ShowMessage('Un - аномальная величина');
     end;
     if (U1 >= Ut) then begin
       for i := 0 to Length(Chauvenet) - 2 do
@@ -226,7 +228,7 @@ end;
 
 procedure TForm1.CalcLongTimeAverageAnnualMinimum;
 begin
-  //getPopulationData(oName, year)
+  CalcPopulationData;
 end;
 
 procedure TForm1.AddToLog(str: String);
@@ -241,139 +243,54 @@ begin
   eMSD.Text := '';
 end;
 
-function TForm1.getPopulationData(oName: String; Year: Integer) : Integer;
+procedure TForm1.CalcPopulationData;
 var
-  i, j: Integer;
+  i, sgIdx: Integer;
+  pSum, pnSum: Double;
 begin
-
+  pSum := 0;
+  pnSum := 0;
+  sgIdx := sgVariationSeries.ColCount;
+  sgVariationSeries.ColCount := sgIdx + 2;
+  sgVariationSeries.Cells[sgIdx, 0] := 'Население Np';
+  sgVariationSeries.Cells[sgIdx + 1, 0] := 'Pi_max*Np';
+  For i := 0 to Length(Chauvenet) - 1 do begin
+    Chauvenet[i].Population :=
+                   Population.Data[Chauvenet[i].Subject, Chauvenet[i].Year];
+    Chauvenet[i].Pi_p := Chauvenet[i].Pi_min * Chauvenet[i].Population;
+    sgVariationSeries.Cells[sgIdx, i + 1] := FloatToStr(Chauvenet[i].Population);
+    sgVariationSeries.Cells[sgIdx + 1, i + 1] := FloatToStr(Chauvenet[i].Pi_p);
+    pSum := pSum + Chauvenet[i].Population;
+    pnSum := pnSum + Chauvenet[i].Pi_p;
+  end;
+  AddToLog('Sum Pn = ' + FloatToStr(pSum));
+  AddToLog('Sum Pn*Pi_min = ' + FloatToStr(pnSum));
 end;
 
 procedure TForm1.btnLoadMorbidityClick(Sender: TObject);
-var
-  fin: TextFile;
-  FileName, s: String;
-  //Stream: TFileStream;
-  //Parser: TParser;
-  //Col, i: Integer;
-  Row: Integer;
-  List1: TStringList;
 begin
-  {Col := 0;
-  Row := 0;
-  If openDialog1.Execute Then FileName:=openDialog1.FileName;
-  AssignFile(fin, FileName);
-  //Reset (fin);
-  //Readln(fin, s);
-  //showmessage(nam);
-
-  try
-    Stream := TFileStream.Create(FileName, fmOpenReadWrite);
-  except
-    on E: EFOpenError do
-       ShowMessage(E.ClassName + ' ошибка: ' + E.Message);
-  end;
-
-  Parser := TParser.Create(Stream);
-
-  while Parser.Token<>toEOF do
-  begin
-      if sgMorbidity.ColCount <= Col then
-        sgMorbidity.ColCount := Col + 1;
-      sgMorbidity.Cells[Col, Parser.SourceLine - 1] := Parser.TokenString;
-    Parser.NextToken;
-    Inc(Col);
-    if (Parser.SourceLine - 1 > Row) then begin
-      Inc(Row);
-      Col := 0;
-      if sgMorbidity.RowCount <= Row then
-        sgMorbidity.RowCount := Row + 1;
-    end;
-    ShowMessage(Parser.TokenString+' '+IntToStr(Parser.SourceLine));
-  end;
-
-  //CloseFile(fin);   }
-
-  tdMorbidity := TTableData.Create;
-  If openDialog1.Execute Then FileName:=openDialog1.FileName;
-  AssignFile(fin, FileName);
-  Reset (fin);
-  List1 := TStringList.Create;
-  List1.Delimiter := #9;
-  List1.StrictDelimiter := true;
-  sgMorbidity.Options := sgMorbidity.Options + [goColSizing];
-  Row := 0;
-  sgMorbidity.ColCount := 1;
-  sgMorbidity.RowCount := 1;
-  while not EOF(fin) do begin
-    Readln(fin, s);
-    if Row = 0 then tdMorbidity.setHeader(s)
-    else tdMorbidity.addRecord(s);
-    List1.Clear;
-    List1.DelimitedText := s;
-    if List1.Count > sgMorbidity.ColCount then
-      sgMorbidity.ColCount := List1.Count;
-    If sgMorbidity.RowCount <= Row then
-      sgMorbidity.RowCount := Row + 1;
-    //ShowMessage(IntToStr(Row));
-    sgMorbidity.Rows[Row] := List1;
-    //for i := 0 to List1.Count - 1 do
-    Inc(Row);
-  end;
-  ObjectName := sgMorbidity.Cells[0, 0];
-  sgMorbidity.Visible := True;
+  ReadTableData(Morbidity);
+  SetStringGridByData(sgMorbidity, Morbidity);
   ClearCalculatedData;
   AddToLog('Таблица ''Стандартизованные показатели заболеваемости'' загружена');
   btnRun.Enabled := True;
 end;
 
-procedure TForm1.btnRunClick(Sender: TObject);
-begin
-  SetMorbidityData();
-  CalcChauvenet();
-  if isPopulationDataLoad then
-    CalcLongTimeAverageAnnualMinimum;
-  sgVariationSeries.Visible := True;
-end;
-
 procedure TForm1.btnLoadPopulationClick(Sender: TObject);
-var
-  fin: TextFile;
-  FileName, s: String;
-  Row: Integer;
-  List1: TStringList;
 begin
-  If openDialog1.Execute Then FileName:=openDialog1.FileName;
-  AssignFile(fin, FileName);
-  Reset (fin);
-  List1 := TStringList.Create;
-  List1.Delimiter := #9;
-  List1.StrictDelimiter := true;
-  sgPopulation.Options := sgPopulation.Options + [goColSizing];
-  Row := 0;
-  sgPopulation.ColCount := 1;
-  sgPopulation.RowCount := 1;
-  while not EOF(fin) do begin
-    Readln(fin, s);
-    List1.Clear;
-    List1.DelimitedText := s;
-    if List1.Count > sgPopulation.ColCount then
-      sgPopulation.ColCount := List1.Count;
-    If sgPopulation.RowCount <= Row then
-      sgPopulation.RowCount := Row + 1;
-    //ShowMessage(IntToStr(Row));
-    sgPopulation.Rows[Row] := List1;
-    //for i := 0 to List1.Count - 1 do
-    Inc(Row);
-  end;
-  sgPopulation.Visible := True;
+  ReadTableData(Population);
+  SetStringGridByData(sgPopulation, Population);
   isPopulationDataLoad := True;
   //ClearCalculatedData;
   AddToLog('Таблица ''Численность населения'' загружена');
 end;
 
-procedure TForm1.Button3Click(Sender: TObject);
+procedure TForm1.btnRunClick(Sender: TObject);
 begin
-  sgMorbidity.SaveToFile('output.txt');
+  CalcChauvenet();
+  if isPopulationDataLoad then
+    CalcLongTimeAverageAnnualMinimum;
+  sgVariationSeries.Visible := True;
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);

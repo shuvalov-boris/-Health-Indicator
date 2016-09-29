@@ -16,42 +16,48 @@ type
     FData: array of array of Double;  // таблица данных
     FSubject: array of String;        // наименование территорий (строки)
     FYear: array of Integer;          // года (столбцы)
-    function GetData(AName: String; AYear: Integer): Double;
-    procedure SetData(AName: String; AYear: Integer; const AValue: Double);
+    FSubjectType: String;
+    function GetData(ASubject: String; AYear: Integer): Double;
     function GetSubject(AIndex: Integer): String;
     function GetYear(AIndex: Integer): Integer;
     function GetColCount: Integer;
     function GetRowCount: Integer;
+    function GetSubjectType: String;
+    function GetDataByIndex(ARow, ACol: Integer): Double;
   public
     constructor Create;
     destructor Destroy; override;
-    property Data[AName: String; AYear: Integer]: Double read GetData write SetData;
+    property Data[ASubject: String; AYear: Integer]: Double read GetData;
+    property DataByIndex[ARow, ACol: Integer]: Double read GetDataByIndex; Default;
     property Subject[ANumber: Integer]: String read GetSubject;
     property Year[ANumber: Integer]: Integer read GetYear;
     property ColCount: Integer read GetColCount;
     property RowCount: Integer read GetRowCount;
+    property SubjectType: String read GetSubjectType;
     procedure setHeader(const header: String);  // Горизонтальный
     procedure addRecord(const rec: String);
   end;
 
 implementation
 
-function TTableData.GetData(AName: String; AYear: Integer): Double;
+function TTableData.GetData(ASubject: String; AYear: Integer): Double;
 var
   i, j: Integer;
 begin
   i := 0;
-  While i < Length(FSubject) do
-    if FSubject[i] = AName then break;
+  While i < Length(FSubject) do begin
+    if FSubject[i] = ASubject then break;
+    Inc(i);
+  end;
   j := 0;
-  While i < Length(FYear) do
-    if FYear[i] = AYear then break;
-  Result := FData[i, j];
-end;
-
-procedure TTableData.SetData(AName: String; AYear: Integer; const AValue: Double);
-begin
-
+  While j < Length(FYear) do begin
+    if FYear[j] = AYear then break;
+    Inc(j)
+  end;
+  if (i < Length(FSubject)) and (j < Length(FYear)) then
+    Result := FData[i, j]
+  else
+    Result := -1.0;
 end;
 
 function TTableData.GetSubject(AIndex: Integer): String;
@@ -62,7 +68,7 @@ end;
 
 function TTableData.GetYear(AIndex: Integer): Integer;
 begin
-  if (AIndex >= 0) and (AIndex < RColCount) then
+  if (AIndex >= 0) and (AIndex < ColCount) then
     Result := FYear[AIndex];
 end;
 
@@ -74,6 +80,17 @@ end;
 function TTableData.GetRowCount: Integer;
 begin
   Result := Length(FSubject);
+end;
+
+function TTableData.GetSubjectType: String;
+begin
+  Result := FSubjectType;
+end;
+
+function TTableData.GetDataByIndex(ARow, ACol: Integer): Double;
+begin
+  If (ARow >= 0) and (ARow < RowCount) and (ACol >= 0) and (ACol < ColCount) then
+    Result := FData[ARow, ACol];
 end;
 
 constructor TTableData.Create;
@@ -98,6 +115,8 @@ begin
   List.StrictDelimiter := True;
   List.DelimitedText := header;
 
+  FSubjectType := List[0];
+
   SetLength(FYear, List.Count - 1);
   For i := 1 to List.Count - 1 do
     FYear[i - 1] := StrToInt(List[i]);
@@ -118,7 +137,10 @@ begin
 
   SetLength(FData, Length(FData) + 1, Length(FYear));
   For i := 1 to List.Count - 1 do
-    FData[Length(FSubject) - 1, i - 1] := StrToFloat(List[i]);
+    if List[i] = '' then
+      FData[Length(FSubject) - 1, i - 1] := 0
+    else
+      FData[Length(FSubject) - 1, i - 1] := StrToFloat(List[i]);
 end;
 
 end.

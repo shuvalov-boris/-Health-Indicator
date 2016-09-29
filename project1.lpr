@@ -1,4 +1,4 @@
-program project1;
+program HealthIndicator;
 
 {$mode objfpc}{$H+}
 
@@ -13,7 +13,8 @@ uses
 {$R *.res}
 
 begin
-  RequireDerivedFormResource:=True;
+  Application.Title := 'Health Indicator';
+  RequireDerivedFormResource := True;
   Application.Initialize;
   Application.CreateForm(TForm1, Form1);
   Application.Run;
