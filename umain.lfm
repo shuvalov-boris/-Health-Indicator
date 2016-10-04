@@ -1,43 +1,38 @@
 object Form1: TForm1
-  Left = 446
-  Height = 505
-  Top = 145
-  Width = 873
+  Left = 390
+  Height = 608
+  Top = 116
+  Width = 891
   Caption = 'Расчет фоновых уровней показателей здоровья'
-  ClientHeight = 505
-  ClientWidth = 873
+  ClientHeight = 608
+  ClientWidth = 891
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   LCLVersion = '1.6.0.4'
   object pData: TPanel
     AnchorSideRight.Control = pControl
     Left = 0
-    Height = 505
+    Height = 608
     Top = 0
-    Width = 618
+    Width = 636
     Align = alLeft
     Anchors = [akTop, akLeft, akRight, akBottom]
-    ClientHeight = 505
-    ClientWidth = 618
+    AutoSize = True
+    ClientHeight = 608
+    ClientWidth = 636
     Color = clWhite
     ParentColor = False
-    TabOrder = 0
+    TabOrder = 1
     object gbStatValues: TGroupBox
-      AnchorSideLeft.Control = sgVariationSeries
       AnchorSideLeft.Side = asrBottom
-      AnchorSideTop.Control = gbInput
-      AnchorSideTop.Side = asrBottom
-      AnchorSideRight.Control = pData
-      AnchorSideRight.Side = asrBottom
-      AnchorSideBottom.Control = pData
-      AnchorSideBottom.Side = asrBottom
-      Left = 386
-      Height = 248
-      Top = 256
-      Width = 231
-      Anchors = [akTop, akRight, akBottom]
+      Left = 440
+      Height = 319
+      Top = 288
+      Width = 195
+      Align = alRight
       Caption = 'Характеристики'
-      ClientHeight = 228
-      ClientWidth = 227
+      ClientHeight = 299
+      ClientWidth = 191
       Color = clForm
       ParentColor = False
       TabOrder = 0
@@ -57,6 +52,7 @@ object Form1: TForm1
         Color = clWhite
         NumbersOnly = True
         ReadOnly = True
+        TabStop = False
         TabOrder = 0
       end
       object lMSD: TLabel
@@ -74,6 +70,7 @@ object Form1: TForm1
         Width = 80
         Color = clWhite
         ReadOnly = True
+        TabStop = False
         TabOrder = 1
       end
       object Label3: TLabel
@@ -90,47 +87,46 @@ object Form1: TForm1
         Height = 23
         Top = 160
         Width = 80
+        TabStop = False
         TabOrder = 2
         Text = 'Edit3'
         Visible = False
       end
     end
     object gbInput: TGroupBox
-      AnchorSideLeft.Control = pData
-      AnchorSideTop.Control = pData
-      AnchorSideRight.Control = pData
-      AnchorSideRight.Side = asrBottom
-      AnchorSideBottom.Control = gbVariationSeries
+      AnchorSideBottom.Control = Splitter1
       Left = 1
-      Height = 255
+      Height = 282
       Top = 1
-      Width = 616
-      Anchors = [akTop, akLeft, akRight, akBottom]
+      Width = 634
+      Align = alTop
       Caption = 'Входные данные'
-      ClientHeight = 235
-      ClientWidth = 612
+      ClientHeight = 262
+      ClientWidth = 630
+      Color = clForm
+      ParentColor = False
       TabOrder = 1
       object pcInput: TPageControl
         Left = 0
-        Height = 235
+        Height = 262
         Top = 0
-        Width = 612
+        Width = 630
         ActivePage = tsMorbidity
         Align = alClient
-        Anchors = [akTop, akLeft, akRight]
         TabIndex = 0
         TabOrder = 0
         object tsMorbidity: TTabSheet
           Hint = 'Стандартизованные показатели заболеваемости'
           Caption = 'Показатели заболеваемости'
-          ClientHeight = 207
-          ClientWidth = 604
+          ClientHeight = 234
+          ClientWidth = 622
           object sgMorbidity: TStringGrid
             Left = 0
-            Height = 207
+            Height = 234
             Top = 0
-            Width = 604
+            Width = 622
             Align = alClient
+            Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goDrawFocusSelected, goColSizing, goRowSelect, goThumbTracking, goDblClickAutoSize, goSmoothScroll]
             TabOrder = 0
             Visible = False
           end
@@ -138,45 +134,104 @@ object Form1: TForm1
         object tsPopulation: TTabSheet
           Hint = 'Среднегодовая численность населения территорий'
           Caption = 'Численность населения'
-          ClientHeight = 199
-          ClientWidth = 630
+          ClientHeight = 234
+          ClientWidth = 622
           object sgPopulation: TStringGrid
             Left = 0
-            Height = 199
+            Height = 234
             Top = 0
-            Width = 630
+            Width = 622
             Align = alClient
+            Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goDblClickAutoSize, goSmoothScroll]
             TabOrder = 0
             Visible = False
           end
         end
       end
     end
-    object gbVariationSeries: TGroupBox
-      AnchorSideLeft.Control = pData
-      AnchorSideTop.Control = gbInput
+    object gbCalculationResults: TGroupBox
       AnchorSideTop.Side = asrBottom
       AnchorSideRight.Control = gbStatValues
-      AnchorSideBottom.Control = pData
       AnchorSideBottom.Side = asrBottom
       Left = 1
-      Height = 248
-      Top = 256
-      Width = 385
-      Anchors = [akLeft, akRight, akBottom]
-      Caption = 'Проверка нормальности распределения вариационного ряда'
-      ClientHeight = 228
-      ClientWidth = 381
+      Height = 319
+      Top = 288
+      Width = 439
+      Align = alLeft
+      Anchors = [akTop, akLeft, akRight, akBottom]
+      Caption = 'Результаты расчетов'
+      ClientHeight = 299
+      ClientWidth = 435
+      Color = clForm
+      ParentColor = False
       TabOrder = 2
-      object sgVariationSeries: TStringGrid
+      object pcCalculationResults: TPageControl
         Left = 0
-        Height = 228
+        Height = 299
         Top = 0
-        Width = 381
+        Width = 435
+        ActivePage = tsVariationSeries
         Align = alClient
+        TabIndex = 0
         TabOrder = 0
-        Visible = False
+        object tsVariationSeries: TTabSheet
+          Caption = 'Нормальность распр-ия ВР'
+          ClientHeight = 271
+          ClientWidth = 427
+          object sgVariationSeries: TStringGrid
+            Left = 0
+            Height = 271
+            Top = 0
+            Width = 427
+            Align = alClient
+            Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goDrawFocusSelected, goColSizing, goRowSelect, goThumbTracking, goDblClickAutoSize, goSmoothScroll]
+            TabOrder = 0
+            Visible = False
+          end
+        end
+        object tsMeanAnnualMin: TTabSheet
+          Caption = 'Среднемноголетний минимум'
+          ClientHeight = 271
+          ClientWidth = 427
+          object sgMeanAnnualMin: TStringGrid
+            Left = 0
+            Height = 271
+            Top = 0
+            Width = 427
+            Align = alClient
+            Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goDblClickAutoSize, goSmoothScroll]
+            TabOrder = 0
+            Visible = False
+          end
+        end
+        object tsUpperConfidenceBound: TTabSheet
+          Caption = 'Верхние доверительные границы'
+          ClientHeight = 271
+          ClientWidth = 427
+          object sgUpperConfidenceBound: TStringGrid
+            Left = 0
+            Height = 271
+            Top = 0
+            Width = 427
+            Align = alClient
+            Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goDblClickAutoSize, goSmoothScroll]
+            TabOrder = 0
+            Visible = False
+          end
+        end
       end
+    end
+    object Splitter1: TSplitter
+      AnchorSideRight.Side = asrBottom
+      Cursor = crVSplit
+      Left = 1
+      Height = 5
+      Top = 283
+      Width = 634
+      Align = alTop
+      Color = clForm
+      ParentColor = False
+      ResizeAnchor = akTop
     end
   end
   object pControl: TPanel
@@ -184,14 +239,14 @@ object Form1: TForm1
     AnchorSideRight.Control = Owner
     AnchorSideBottom.Control = Owner
     AnchorSideBottom.Side = asrBottom
-    Left = 618
-    Height = 505
+    Left = 636
+    Height = 608
     Top = 0
     Width = 255
     Align = alRight
-    ClientHeight = 505
+    ClientHeight = 608
     ClientWidth = 255
-    TabOrder = 1
+    TabOrder = 0
     object btnRun: TButton
       Left = 88
       Height = 25
@@ -200,12 +255,12 @@ object Form1: TForm1
       Caption = 'Рассчитать'
       Enabled = False
       OnClick = btnRunClick
-      TabOrder = 0
+      TabOrder = 2
     end
     object mLog: TMemo
       Left = 1
       Height = 164
-      Top = 340
+      Top = 443
       Width = 253
       Align = alBottom
       Lines.Strings = (
@@ -213,7 +268,7 @@ object Form1: TForm1
       )
       ReadOnly = True
       ScrollBars = ssAutoBoth
-      TabOrder = 1
+      TabOrder = 3
     end
     object btnLoadMorbidity: TButton
       AnchorSideTop.Control = gbInput
@@ -227,7 +282,7 @@ object Form1: TForm1
       Anchors = [akTop, akRight]
       Caption = 'Загрузить показатели заболеваемости'
       OnClick = btnLoadMorbidityClick
-      TabOrder = 2
+      TabOrder = 0
     end
     object btnLoadPopulation: TButton
       Left = 24
@@ -236,7 +291,16 @@ object Form1: TForm1
       Width = 208
       Caption = 'Загрузить численность населения'
       OnClick = btnLoadPopulationClick
-      TabOrder = 3
+      TabOrder = 1
+    end
+    object Button1: TButton
+      Left = 112
+      Height = 25
+      Top = 368
+      Width = 131
+      Caption = 'Experimantal Excel'
+      OnClick = Button1Click
+      TabOrder = 4
     end
   end
   object OpenDialog1: TOpenDialog

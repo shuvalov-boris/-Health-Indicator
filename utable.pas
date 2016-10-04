@@ -21,6 +21,7 @@ type
     function GetSubject(AIndex: Integer): String;
     function GetYear(AIndex: Integer): Integer;
     function GetColCount: Integer;
+    function GetYearNumber: Integer;
     function GetRowCount: Integer;
     function GetSubjectType: String;
     function GetDataByIndex(ARow, ACol: Integer): Double;
@@ -32,6 +33,7 @@ type
     property Subject[ANumber: Integer]: String read GetSubject;
     property Year[ANumber: Integer]: Integer read GetYear;
     property ColCount: Integer read GetColCount;
+    property YearNumber: Integer read GetYearNumber;
     property RowCount: Integer read GetRowCount;
     property SubjectType: String read GetSubjectType;
     procedure setHeader(const header: String);  // Горизонтальный
@@ -73,6 +75,11 @@ begin
 end;
 
 function TTableData.GetColCount: Integer;
+begin
+  Result := Length(FYear);
+end;
+
+function TTableData.GetYearNumber: Integer;
 begin
   Result := Length(FYear);
 end;
