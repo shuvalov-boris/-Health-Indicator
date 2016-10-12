@@ -16,17 +16,25 @@ const
          2.383, 2.390, 2.401, 2.412, 2.423, 2.434, 2.445, 2.456, 2.467, 2.478,
          2.489, 2.500, 2.508, 2.516, 2.524, 2.532, 2.540, 2.548, 2.556, 2.564,
          2.572, 2.580);
+  STUDENT_TEST: array [0..39] of Double = (12.706, 4.303, 3.182, 2.776, 2.571,
+         2.447, 2.365, 2.306, 2.262, 2.228, 2.201, 2.179, 2.16,  2.145, 2.131,
+         2.12,  2.11,  2.101, 2.093, 2.086, 2.08,  2.074, 2.069, 2.064, 2.06,
+         2.056, 2.052, 2.048, 2.045, 2.042, 2.03,  2.021, 2.014, 2.008, 2,
+         1.995, 1.99,  1.987, 1.984, 1.95796);
 
   CHAUVENET_HEADER: array [0..5] of String = ('Ранг', 'Субъект', 'Год', 'Pi_min',
          'Pi_min-X_min', '(Pi_min-X_min)^2');
   POPULATION_HEADER: array [0..5] of String = ('Ранг', 'Субъект', 'Год', 'Pi_min',
          'Население Np', 'Pi_max*Np');
   UPPER_CONFIDENCE_BOUNDS: array [0.. 5] of String = ('Субъект',
-         'Среднемноголетняя численность населения', '', '', '', 'Pi_max');
+         'Среднемноголетняя численность населения', 'Mx_si', 't*Mx_si',
+         'Xi_max', 'Pi_max');
+  INTENSIVE_INDEX_BASIS = 100000;
 
 type
 
   TChauvenet = record
+    SerialNumber: Integer;
     Rang: Integer;
     Subject: String;
     Year: Integer;
@@ -36,6 +44,10 @@ type
     Population: Double;
     Pi_p: Double;
     PopulationMA: Double;
+    Mxsi: Double;
+    tMxsi: Double;
+    Xi_max: Double;
+    Pi_max: Double;
   end;
 
   { TForm1 }
@@ -45,6 +57,7 @@ type
     btnRun: TButton;
     btnLoadPopulation: TButton;
     Button1: TButton;
+    cbSelectedParameters: TCheckBox;
     eMeanValue: TEdit;
     eMSD: TEdit;
     Edit3: TEdit;
@@ -75,6 +88,7 @@ type
     procedure btnLoadPopulationClick(Sender: TObject);
     procedure btnRunClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure cbSelectedParametersChange(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
     procedure TabSheet2ContextPopup(Sender: TObject; MousePos: TPoint;
@@ -84,9 +98,11 @@ type
     Morbidity: TTableData;
     Population: TTableData;
     Chauvenet: array of TChauvenet;
+    MeanAnnualMin: Double;
     Excel: Variant;
     function ReadTableData(var table: TTableData): Boolean;
-    procedure SetStringGridByData(var sg: TStringGrid; const table: TTableData);
+    procedure SetStringGridByData(var sg: TStringGrid; const table: TTableData;
+                                  const Filter: Boolean = False);
     procedure CalcChauvenet;
     procedure ShowChauvenet;
     procedure CalcLongTimeAverageAnnualMinimum;
@@ -96,6 +112,7 @@ type
     procedure ShowPopulationData;
     procedure CalcUpperConfidenceBounds;
     procedure ShowUpperConfidenceBounds;
+    function GetStudentTest(const arg: Double): Double;
   public
     { public declarations }
   end;
@@ -132,7 +149,8 @@ begin
   end;
 end;
 
-procedure TForm1.SetStringGridByData(var sg: TStringGrid; const table: TTableData);
+procedure TForm1.SetStringGridByData(var sg: TStringGrid; const table: TTableData;
+          const Filter: Boolean = False);
 var
   i, j: Integer;
 begin
@@ -145,7 +163,12 @@ begin
     sg.Cells[0, i + 1] := table.Subject[i];
   For i := 0 to table.RowCount - 1 do
     For j := 0 to table.ColCount - 1 do
-      sg.Cells[j + 1, i + 1] := FloatToStr(table[i, j]);
+      if (Abs(table[i, j]) < 0.00000001) or
+          (Filter and cbSelectedParameters.Checked and
+            (table[i, j] >= Chauvenet[i].Pi_max)) then
+        sg.Cells[j + 1, i + 1] := ''
+      else
+        sg.Cells[j + 1, i + 1] := FloatToStr(table[i, j]);
   sg.Visible := True;
 end;
 
@@ -171,6 +194,7 @@ begin
     Chauvenet[i].Subject := Morbidity.Subject[i];
     Chauvenet[i].Pi_min := min;
     Chauvenet[i].Year := Morbidity.Year[j_min];
+    Chauvenet[i].SerialNumber := i;
   end;
 
   AddToLog('Ранжирование показателей');
@@ -290,7 +314,8 @@ begin
   end;
   AddToLog('Sum n(i) = ' + FloatToStr(pSum));
   AddToLog('Sum N(i)*P(i)_min = ' + FloatToStr(pnSum));
-  AddToLog('Среднемноголетний минимум равен ' + FloatToStr(pnSum / pSum));
+  MeanAnnualMin := pnSum / pSum;
+  AddToLog('Среднемноголетний минимум равен ' + FloatToStr(MeanAnnualMin));
 end;
 
 procedure TForm1.ShowPopulationData;
@@ -319,17 +344,38 @@ end;
 
 procedure TForm1.CalcUpperConfidenceBounds;
 var
-  i, year: Integer;
-  Sum: Double;
+  i, j, year: Integer;
+  Sum, gSum, Xs: Double;
+  tmp: TChauvenet;
 begin
-  Sum := 0.0;
+
+  For i := 0 to Length(Chauvenet) - 2 do
+      For j := 0 to Length(Chauvenet) - 2 - i do
+        If Chauvenet[j].SerialNumber > Chauvenet[j + 1].SerialNumber Then begin
+          tmp := Chauvenet[j];
+          Chauvenet[j] := Chauvenet[j + 1];
+          Chauvenet[j + 1] := tmp;
+        end;
+
+  Xs := MeanAnnualMin / INTENSIVE_INDEX_BASIS;
+  AddToLog('Нормированный среднемноголетний минимум заболеваемости ' +
+           FloatToStr(Xs));
+
+  gSum := 0.0;
   for i := 0 to Length(Chauvenet) - 1 do begin
+    Sum := 0.0;
     for year := 0 to Population.YearNumber - 1 do
       Sum := Sum + Population.Data[Chauvenet[i].Subject, Population.Year[year]];
-    ShowMessage('slag = ' +
-        FloatToStr(Population.Data[Chauvenet[i].Subject, Population.Year[year]])
-        + ', sum = ' + FloatToStr(Sum) + ', i = ' + IntToStr(i));
     Chauvenet[i].PopulationMA := Sum / Population.YearNumber;
+    if Chauvenet[i].PopulationMA > 0.00000001 then
+      Chauvenet[i].Mxsi := Sqrt(Xs / Chauvenet[i].PopulationMA)
+    else
+      AddToLog('-Нулевое значение среднегодового населения');
+    Chauvenet[i].tMxsi := GetStudentTest(Chauvenet[i].PopulationMA - 1) *
+                       Chauvenet[i].Mxsi;
+    Chauvenet[i].Xi_max := Xs + Chauvenet[i].tMxsi;
+    Chauvenet[i].Pi_max := Chauvenet[i].Xi_max * INTENSIVE_INDEX_BASIS;
+    gSum := gSum + Sum;
   end;
 
 end;
@@ -349,13 +395,28 @@ begin
     For i := 0 to Length(Chauvenet) - 1 do begin
       sgUpperConfidenceBound.Cells[0, i + 1] := Chauvenet[i].Subject;
       sgUpperConfidenceBound.Cells[1, i + 1] := FloatToStr(Chauvenet[i].PopulationMA);
-      //sgUpperConfidenceBound.Cells[2, i + 1] :=
-      //sgUpperConfidenceBound.Cells[3, i + 1] := FloatToStr(Chauvenet[i].Pi_min);
-      //sgUpperConfidenceBound.Cells[4, i + 1] := FloatToStr(Chauvenet[i].Population);
-      //sgUpperConfidenceBound.Cells[5, i + 1] := FloatToStr(Chauvenet[i].Pi_p);
+      sgUpperConfidenceBound.Cells[2, i + 1] := FloatToStr(Chauvenet[i].Mxsi);
+      sgUpperConfidenceBound.Cells[3, i + 1] := FloatToStr(Chauvenet[i].tMxsi);
+      sgUpperConfidenceBound.Cells[4, i + 1] := FloatToStr(Chauvenet[i].Xi_max);
+      sgUpperConfidenceBound.Cells[5, i + 1] := FloatToStr(Chauvenet[i].Pi_max);
     end;
 
     sgUpperConfidenceBound.Visible := True;
+end;
+
+function TForm1.GetStudentTest(const arg: Double): Double;
+var
+  iarg: Integer;
+begin
+  iarg := Round(arg);
+  if iarg <= 30 then
+    Result := STUDENT_TEST[iarg - 1]
+  else if iarg > 100 then
+    Result := STUDENT_TEST[Length(STUDENT_TEST) - 1]
+  else begin
+    Result := 0.0;
+    AddToLog('GetStudentTest TODO!');
+  end;
 end;
 
 procedure TForm1.btnLoadMorbidityClick(Sender: TObject);
@@ -384,13 +445,15 @@ begin
   ShowChauvenet();
   if isPopulationDataLoad then
     CalcLongTimeAverageAnnualMinimum;
+  cbSelectedParameters.Visible := True;
+  cbSelectedParameters.Checked := True;
 end;
 
 procedure TForm1.Button1Click(Sender: TObject);
 var
   i, j: Integer;
-  Range, x: Variant;
-  s: string;
+  //Range, x: Variant;
+  //s: string;
 begin
   If openDialog1.Execute Then begin
     Excel.Application.WorkBooks.Add(openDialog1.FileName);
@@ -398,7 +461,7 @@ begin
   with sgMorbidity do begin
     RowCount := 50;
     ColCount := 50;
-    s := String(Excel.WorkSheets.Item['Лист1'].Cells[i, j]);
+    //s := String(Excel.WorkSheets.Item['Лист1'].Cells[i, j]);
     //x := Range.Cells[1, 1];
     try
     for i:=1 to RowCount-1 do
@@ -411,6 +474,11 @@ begin
     Visible := True;
   end;
   end;
+end;
+
+procedure TForm1.cbSelectedParametersChange(Sender: TObject);
+begin
+  SetStringGridByData(sgMorbidity, Morbidity, True);
 end;
 
 procedure TForm1.FormCloseQuery(Sender: TObject; var CanClose: boolean);
